@@ -1,0 +1,9 @@
+// 在 check.html 的 <script> 裡
+window.onload = function() {
+    const savedName = sessionStorage.getItem('userName');
+    if (savedName) {
+        document.getElementById('userName').value = savedName;
+        // 甚至可以直接幫他點擊查詢按鈕
+        // queryOrder(); 
+    }
+};
