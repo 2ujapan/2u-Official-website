@@ -3,97 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>帳號綁定 - 2U日本代購 🦋</title>
+    <title>驗證中 - 2U日本代購 🦋</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: #fef9f3; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(255, 184, 153, 0.2); width: 85%; max-width: 350px; text-align: center; }
-        h2 { color: #333; margin-bottom: 20px; font-size: 20px; }
-        p { color: #888; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
-        input { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 10px; background: #f9f9f9; box-sizing: border-box; font-size: 16px; margin-bottom: 20px; outline: none; }
-        input:focus { border-color: #ffb899; background: #fff; }
-        .btn { background: #ffb899; color: white; padding: 12px; border-radius: 30px; border: none; width: 100%; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(255, 184, 153, 0.3); }
-        #loading { color: #999; font-size: 14px; }
+        .btn { background: #ffb899; color: white; padding: 12px; border-radius: 30px; border: none; width: 100%; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        input { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-top: 10px; box-sizing: border-box; font-size: 16px; }
+        #statusMsg { color: #999; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading">🦋 正在驗證身分...</div>
-
-    <div id="bindArea" style="display:none;">
-        <h2>歡迎加入 2U 🦋</h2>
-        <p>為了方便幫您記錄訂單，<br>請輸入您在社群中使用的名稱：</p>
-        <input type="text" id="inputName" placeholder="例如：王小明 / Wen">
-        <button class="btn" onclick="handleBind()">確認綁定並進入商城</button>
+    <div id="statusMsg">🦋 正在載入 LINE...</div>
+    
+    <div id="bindBox" style="display:none;">
+        <h3 style="margin:0;">歡迎加入連線 🦋</h3>
+        <p style="font-size: 14px; color: #888;">請輸入您的社群名稱以利對帳</p>
+        <input type="text" id="userNameInput" placeholder="例如：Wen / 小明">
+        <button class="btn" onclick="doBind()">確認綁定並進入商城</button>
     </div>
 </div>
 
 <script>
-    // --- 請確保這兩個參數與 index.html 一致 ---
+    // --- 統一參數設定 ---
     const liffId = "2009620784-76eBZ9C0"; 
     const apiBase = "https://script.google.com/macros/s/AKfycbyCPGJ0BAKn3f006jc-QnThoaYl8kZNWBv9ywXfNXxmc1P0kid5N2ZC3LP8Ul-E13CEfw/exec"; 
 
     async function init() {
         try {
             await liff.init({ liffId: liffId });
-            if (liff.isLoggedIn()) {
-                const profile = await liff.getProfile();
-                const uid = profile.userId;
-                checkUserStatus(uid);
-            } else {
+            if (!liff.isLoggedIn()) {
                 liff.login();
+                return;
             }
+            
+            const profile = await liff.getProfile();
+            const uid = profile.userId;
+            
+            fetch(`${apiBase}?uid=${uid}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.name) {
+                        window.location.replace("index.html");
+                    } else {
+                        document.getElementById('statusMsg').style.display = 'none';
+                        document.getElementById('bindBox').style.display = 'block';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('statusMsg').innerText = "連線異常，請重試";
+                });
+
         } catch (err) {
-            document.getElementById('loading').innerText = "LIFF 初始化失敗";
+            document.getElementById('statusMsg').innerText = "啟動失敗";
         }
     }
 
-    // 1. 檢查使用者是否已經在試算表中
-    function checkUserStatus(uid) {
-        fetch(`${apiBase}?uid=${uid}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success" || data.status === "bound") {
-                    // --- 關鍵邏輯：已綁定就直接秒轉跳，不給他看 undefined 畫面 ---
-                    window.location.href = "index.html"; 
-                } else {
-                    // 沒綁定過，顯示輸入框
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('bindArea').style.display = 'block';
-                }
-            })
-            .catch(err => {
-                document.getElementById('loading').innerText = "連線失敗，請重試";
-            });
-    }
-
-    // 2. 執行綁定動作
-    function handleBind() {
-        const name = document.getElementById('inputName').value.trim();
-        if (!name) return alert("請輸入社群名稱唷！");
-
+    function doBind() {
+        const name = document.getElementById('userNameInput').value.trim();
+        if (!name) return alert("請輸入名字唷！");
+        
         const uid = liff.getContext().userId;
-        document.getElementById('bindArea').style.display = 'none';
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('loading').innerText = "正在為您建立檔案...";
+        document.getElementById('bindBox').style.display = 'none';
+        document.getElementById('statusMsg').style.display = 'block';
+        document.getElementById('statusMsg').innerText = "正在建立您的檔案...";
 
-        // 呼叫 GAS 進行綁定
         fetch(`${apiBase}?uid=${uid}&name=${encodeURIComponent(name)}`)
             .then(res => res.json())
-            .then(data => {
-                alert("綁定成功！歡迎您，" + name);
-                // 綁定成功後，立刻導向首頁商城
-                window.location.href = "index.html";
-            })
-            .catch(err => {
-                alert("綁定發生錯誤，請稍後再試");
-                location.reload();
+            .then(() => {
+                alert("綁定成功！");
+                window.location.replace("index.html");
             });
     }
 
     init();
 </script>
-
 </body>
 </html>
