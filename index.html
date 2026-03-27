@@ -30,11 +30,14 @@
             await liff.init({ liffId: "2009620784-76eBZ9C0" });
             if (liff.isLoggedIn()) {
                 const profile = await liff.getProfile();
+                const uid = profile.userId; // 這是 LINE 給你的唯一身分代碼
+        
+                // 存到 session 給下一頁
+                sessionStorage.setItem('lineUid', uid);
+        
                 document.getElementById('beforeLogin').style.display = 'none';
                 document.getElementById('afterLogin').style.display = 'block';
                 document.getElementById('userName').innerText = profile.displayName + "，您好";
-                document.getElementById('userImg').src = profile.pictureUrl;
-                sessionStorage.setItem('userName', profile.displayName); // 存名字給下一頁用
             }
         }
         init();

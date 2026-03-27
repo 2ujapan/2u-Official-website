@@ -1,42 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訂單查詢結果</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fef9f3; }
-        .result-box { background: white; padding: 20px; border-radius: 15px; text-align: left; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h2>您的訂單狀態</h2>
-    <div id="status">載入中...</div>
-    <div id="result" class="result-box" style="display:none;">
-        <p>📦 訂單編號：<span id="orderId"></span></p>
-        <p>✨ 目前狀態：<span id="orderStatus"></span></p>
-        <p>📝 賣家備註：<span id="note"></span></p>
+<div id="queryArea">
+    <div id="bindingForm" style="display:none;">
+        <p>偵測到您尚未綁定社群名稱，請輸入一次以完成串接：</p>
+        <input type="text" id="inputName" placeholder="請輸入您的社群名稱">
+        <button onclick="startBind()" class="btn">確認綁定</button>
     </div>
-    <br>
-    <a href="index.html">回首頁</a>
 
-    <script>
-        const userName = sessionStorage.getItem('userName');
-        const api = "https://script.google.com/macros/s/AKfycby8Wi3zuuUzQsQLNNWenHNobkFun7J4tHX2RcT3qNqbbEERvCYSU4TLCqVDde1xJHFjow/exec" + userName;
+    <div id="resultArea" style="display:none;">
+        <h3 id="displayName"></h3>
+        <p>📦 訂單：<span id="orderId"></span></p>
+        <p>✨ 狀態：<span id="orderStatus"></span></p>
+    </div>
+</div>
 
-        fetch(api)
+<script>
+    const uid = sessionStorage.getItem('lineUid');
+    const apiUrl = "https://script.google.com/macros/s/AKfycby8Wi3zuuUzQsQLNNWenHNobkFun7J4tHX2RcT3qNqbbEERvCYSU4TLCqVDde1xJHFjow/exec";
+
+    // 一進來先檢查有沒有綁定過
+    fetch(`${apiUrl}?uid=${uid}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                showData(data);
+            } else {
+                document.getElementById('bindingForm').style.display = 'block';
+            }
+        });
+
+    function startBind() {
+        const name = document.getElementById('inputName').value;
+        fetch(`${apiUrl}?uid=${uid}&name=${name}`)
             .then(res => res.json())
             .then(data => {
-                if (data.status === "success") {
-                    document.getElementById('status').style.display = 'none';
-                    document.getElementById('result').style.display = 'block';
-                    document.getElementById('orderId').innerText = data.orderId;
-                    document.getElementById('orderStatus').innerText = data.orderStatus;
-                    document.getElementById('note').innerText = data.note;
-                } else {
-                    document.getElementById('status').innerText = "查無訂單，請聯繫管理員";
-                }
+                alert(data.message);
+                location.reload(); // 綁定成功後重新整理就看到資料了
             });
-    </script>
-</body>
-</html>
+    }
+
+    function showData(data) {
+        document.getElementById('resultArea').style.display = 'block';
+        document.getElementById('displayName').innerText = data.name + " 的訂單";
+        document.getElementById('orderId').innerText = data.orderId;
+        document.getElementById('orderStatus').innerText = data.orderStatus;
+    }
+</script>
