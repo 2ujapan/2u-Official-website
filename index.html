@@ -1,19 +1,50 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代購小管家</title>
+    <title>2U日本代購 - 登入</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        /* 這裡寫 CSS 讓網頁變漂亮，例如背景漸層、按鈕樣式 */
-        body { font-family: sans-serif; background: linear-gradient(180deg, #fdfcfb 0%, #e2d1c3 100%); text-align: center; }
-        .btn { display: block; width: 80%; margin: 20px auto; padding: 15px; background: #06C755; color: white; border-radius: 30px; text-decoration: none; }
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        .profile-img { width: 100px; border-radius: 50%; margin-bottom: 10px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #06C755; color: white; border-radius: 20px; text-decoration: none; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>我的日本代購 🦋</h1>
-    <p>專屬於您的連線採購小管家</p>
-    <a href="https://line.me/ti/p/@707agsqt" class="btn">🍀 LINE 快速進入下單</a>
-    <a href="check.html" style="color: #666;">直接查詢訂單記錄 ></a>
+    <div id="loading">載入中...</div>
+    
+    <div id="content" style="display:none;">
+        <img id="pictureUrl" class="profile-img" src="" alt="頭貼">
+        <h2 id="displayName">你好！</h2>
+        <p>歡迎來到 2U日本代購</p>
+        
+        <a href="check.html" class="btn">🍀 查詢我的訂單紀錄</a>
+    </div>
+
+    <script>
+        async function main() {
+            // 這裡填入你在 LINE Developers 取得的 LIFF ID
+            await liff.init({ liffId: "你的_LIFF_ID" });
+
+            if (!liff.isLoggedIn()) {
+                // 如果沒登入，強制執行登入
+                liff.login();
+            } else {
+                // 登入後，抓取個人資訊
+                const profile = await liff.getProfile();
+                document.getElementById('displayName').innerText = "你好，" + profile.displayName + " 🦋";
+                document.getElementById('pictureUrl').src = profile.pictureUrl;
+                
+                // 隱藏載入中，顯示內容
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+                // (進階) 你可以把 profile.displayName 存起來，方便 check.html 使用
+                sessionStorage.setItem('userName', profile.displayName);
+            }
+        }
+        main();
+    </script>
 </body>
 </html>
