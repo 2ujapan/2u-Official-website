@@ -14,7 +14,7 @@
 <body>
     <h2>訂單中心</h2>
     
-    <div id="loading">讀取中...</div>
+    <div id="loading">讀取中...🦋</div>
 
     <div id="bindDiv" class="box" style="display:none;">
         <p>👋 歡迎！請輸入您的 **社群名稱** 以綁定帳號：</p>
@@ -31,7 +31,7 @@
 
     <script>
         const uid = sessionStorage.getItem('lineUid');
-        const apiBase = "https://script.google.com/macros/s/AKfycbwrV3FJzuu0Yxb1stZc6kdTkBbCCICrGMNu_xewglPB9ZrajuNwbQlpDB3kP5rieFNIyQ/exec"; 
+        const apiBase = "https://script.google.com/macros/s/AKfycbwNrOb2s82_6CJ1AngyTHgbUMirqfXgMzTxf7oJ7qUz-dh_nkgkacLQ3WNnmze5HUVxKQ/exec"; 
 
         // 頁面載入先檢查
         fetch(`${apiBase}?uid=${uid}`)
