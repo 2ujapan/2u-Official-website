@@ -39,15 +39,15 @@
 </div>
 
 <script>
-    const LIFF_ID = "2009620784-76eBZ9C0"; 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyCPGJ0BAKn3f006jc-QnThoaYl8kZNWBv9ywXfNXxmc1P0kid5N2ZC3LP8Ul-E13CEfw/exec"; // 結尾要是 /exec
+    const liffId = "2009620784-76eBZ9C0"; 
+    const apiBase = "https://script.google.com/macros/s/AKfycbyCPGJ0BAKn3f006jc-QnThoaYl8kZNWBv9ywXfNXxmc1P0kid5N2ZC3LP8Ul-E13CEfw/exec"; 
 
     let allProducts = [];
     let cart = [];
 
     async function init() {
         try {
-            await liff.init({ liffId: LIFF_ID });
+            await liff.init({ liffId: liffId });
             if (!liff.isLoggedIn()) {
                 liff.login();
             } else {
@@ -74,7 +74,7 @@
     }
 
     function loadProducts() {
-        fetch(`${GAS_URL}?action=getProducts`)
+        fetch(`${apiBase}?action=getProducts`)
             .then(res => res.json())
             .then(data => {
                 // --- 修正點：自動過濾掉名稱是空的商品 ---
