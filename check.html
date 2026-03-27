@@ -1,9 +1,42 @@
-// 在 check.html 的 <script> 裡
-window.onload = function() {
-    const savedName = sessionStorage.getItem('userName');
-    if (savedName) {
-        document.getElementById('userName').value = savedName;
-        // 甚至可以直接幫他點擊查詢按鈕
-        // queryOrder(); 
-    }
-};
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單查詢結果</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fef9f3; }
+        .result-box { background: white; padding: 20px; border-radius: 15px; text-align: left; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>您的訂單狀態</h2>
+    <div id="status">載入中...</div>
+    <div id="result" class="result-box" style="display:none;">
+        <p>📦 訂單編號：<span id="orderId"></span></p>
+        <p>✨ 目前狀態：<span id="orderStatus"></span></p>
+        <p>📝 賣家備註：<span id="note"></span></p>
+    </div>
+    <br>
+    <a href="index.html">回首頁</a>
+
+    <script>
+        const userName = sessionStorage.getItem('userName');
+        const api = "https://script.google.com/macros/s/AKfycby8Wi3zuuUzQsQLNNWenHNobkFun7J4tHX2RcT3qNqbbEERvCYSU4TLCqVDde1xJHFjow/exec" + userName;
+
+        fetch(api)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById('status').style.display = 'none';
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('orderId').innerText = data.orderId;
+                    document.getElementById('orderStatus').innerText = data.orderStatus;
+                    document.getElementById('note').innerText = data.note;
+                } else {
+                    document.getElementById('status').innerText = "查無訂單，請聯繫管理員";
+                }
+            });
+    </script>
+</body>
+</html>
