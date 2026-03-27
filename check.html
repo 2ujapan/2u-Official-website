@@ -9,8 +9,8 @@
         body { font-family: -apple-system, sans-serif; background: #fef9f3; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(255, 184, 153, 0.2); width: 85%; max-width: 350px; text-align: center; }
         .btn { background: #ffb899; color: white; padding: 12px; border-radius: 30px; border: none; width: 100%; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        input { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-top: 10px; box-sizing: border-box; font-size: 16px; }
-        #statusMsg { color: #999; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-top: 10px; box-sizing: border-box; }
+        #loading { color: #999; }
     </style>
 </head>
 <body>
@@ -27,13 +27,13 @@
 </div>
 
 <script>
-    // --- 統一參數設定 ---
-    const liffId = "2009620784-76eBZ9C0"; 
-    const apiBase = "https://script.google.com/macros/s/AKfycbyCPGJ0BAKn3f006jc-QnThoaYl8kZNWBv9ywXfNXxmc1P0kid5N2ZC3LP8Ul-E13CEfw/exec"; 
+    // 1. 設定區 (請務必填寫正確)
+    const MY_LIFF_ID = "2009620784-76eBZ9C0"; 
+    const MY_GAS_URL = "https://script.google.com/macros/s/AKfycbyCPGJ0BAKn3f006jc-QnThoaYl8kZNWBv9ywXfNXxmc1P0kid5N2ZC3LP8Ul-E13CEfw/exec"; 
 
-    async function init() {
+    async function start() {
         try {
-            await liff.init({ liffId: liffId });
+            await liff.init({ liffId: MY_LIFF_ID });
             if (!liff.isLoggedIn()) {
                 liff.login();
                 return;
@@ -42,22 +42,26 @@
             const profile = await liff.getProfile();
             const uid = profile.userId;
             
-            fetch(`${apiBase}?uid=${uid}`)
+            // 去問 GAS：這個 UID 綁定過了嗎？
+            fetch(`${MY_GAS_URL}?uid=${uid}`)
                 .then(res => res.json())
                 .then(data => {
+                    // 只要回傳有名字，代表已經是會員，直接踢回首頁
                     if (data.name) {
-                        window.location.replace("index.html");
+                        document.getElementById('statusMsg').innerText = "驗證成功，跳轉中...";
+                        window.location.replace("index.html"); // 使用 replace 防止按返回鍵又回到這
                     } else {
+                        // 真的沒綁定過，才顯示輸入框
                         document.getElementById('statusMsg').style.display = 'none';
                         document.getElementById('bindBox').style.display = 'block';
                     }
                 })
-                .catch(() => {
-                    document.getElementById('statusMsg').innerText = "連線異常，請重試";
+                .catch(err => {
+                    document.getElementById('statusMsg').innerText = "連線異常，請重新整理";
                 });
 
         } catch (err) {
-            document.getElementById('statusMsg').innerText = "啟動失敗";
+            document.getElementById('statusMsg').innerText = "啟動失敗：" + err;
         }
     }
 
@@ -68,17 +72,18 @@
         const uid = liff.getContext().userId;
         document.getElementById('bindBox').style.display = 'none';
         document.getElementById('statusMsg').style.display = 'block';
-        document.getElementById('statusMsg').innerText = "正在建立您的檔案...";
+        document.getElementById('statusMsg').innerText = "正在建立您的專屬檔案...";
 
-        fetch(`${apiBase}?uid=${uid}&name=${encodeURIComponent(name)}`)
+        fetch(`${MY_GAS_URL}?uid=${uid}&name=${encodeURIComponent(name)}`)
             .then(res => res.json())
-            .then(() => {
+            .then(data => {
                 alert("綁定成功！");
-                window.location.replace("index.html");
+                window.location.replace("index.html"); // 綁完立刻進首頁
             });
     }
 
-    init();
+    start();
 </script>
+
 </body>
 </html>
