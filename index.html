@@ -1,55 +1,155 @@
-// --- 1. 原有基礎：初始化 LIFF ---
-async function initLiff() {
-    await liff.init({ liffId: "2009620784-76eBZ9C0" });
-    if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile();
-        const uid = profile.userId;
-        sessionStorage.setItem('lineUid', uid); // 存起來備用
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2U日本代購 🦋 官方商城</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #fef9f3; margin: 0; padding-bottom: 80px; }
+        .header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* 分類按鈕區：自動橫向捲動 */
+        #categoryMenu { padding: 10px; white-space: nowrap; overflow-x: auto; display: flex; gap: 10px; sticky; top: 0; background: #fef9f3; z-index: 10; }
+        .cat-btn { background: white; border: 1px solid #ffb899; color: #ffb899; padding: 8px 15px; border-radius: 20px; font-size: 14px; cursor: pointer; flex-shrink: 0; }
+        .cat-btn.active { background: #ffb899; color: white; }
 
-        // --- 2. 核心邏輯：檢查綁定狀態 ---
-        checkBinding(uid);
-    } else {
-        // 未登入顯示登入按鈕
-        document.getElementById('loginDiv').style.display = 'block';
+        /* 商品網格 */
+        #productGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .product-card { background: white; border-radius: 15px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        .product-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
+        .product-name { font-size: 15px; margin: 10px 0 5px; color: #333; height: 40px; overflow: hidden; }
+        .price { color: #ffb899; font-weight: bold; font-size: 16px; }
+        .stock { font-size: 11px; color: #999; float: right; margin-top: 4px; }
+        .tag { position: absolute; top: 15px; left: 15px; background: rgba(255,184,153,0.9); color: white; font-size: 10px; padding: 2px 6px; border-radius: 5px; }
+        
+        .buy-btn { width: 100%; margin-top: 10px; border: none; border-radius: 8px; padding: 10px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-enabled { background: #06C755; }
+        .btn-disabled { background: #ccc; cursor: not-allowed; }
+
+        /* 底部購物車浮窗 */
+        #cartFab { position: fixed; bottom: 20px; right: 20px; background: #ffb899; color: white; padding: 15px 25px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: none; z-index: 100; font-weight: bold; }
+        
+        #loading { text-align: center; padding: 50px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2 id="userName">正在載入 2U 代購...</h2>
+    <p style="font-size: 12px; color: #888;">專屬於您的連線採購小管家</p>
+</div>
+
+<div id="loading">🦋 正在從雲端搬運商品中...</div>
+
+<div id="shopArea" style="display:none;">
+    <div id="categoryMenu"></div>
+    <div id="productGrid"></div>
+</div>
+
+<div id="cartFab" onclick="alert('購物車明細開發中！目前已加入 ' + cart.length + ' 件商品')">
+    🛒 購物車 (<span id="cartCount">0</span>)
+</div>
+
+<script>
+    const liffId = "2009620784-76eBZ9C0"; 
+    const apiBase = "https://script.google.com/macros/s/AKfycbwNrOb2s82_6CJ1AngyTHgbUMirqfXgMzTxf7oJ7qUz-dh_nkgkacLQ3WNnmze5HUVxKQ/exec"; 
+    let allProducts = [];
+    let cart = [];
+
+    async function init() {
+        await liff.init({ liffId: liffId });
+        if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            checkBinding(profile.userId);
+        } else {
+            liff.login();
+        }
     }
-}
 
-// --- 3. 檢查是否綁定社群名稱 ---
-function checkBinding(uid) {
-    const api = "你的_GAS_網址";
-    fetch(`${api}?uid=${uid}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                // 已綁定：隱藏登入區，顯示歡迎詞與商品清單
-                document.getElementById('userName').innerText = data.name + "，歡迎回來 🦋";
+    // 1. 檢查綁定狀態
+    function checkBinding(uid) {
+        fetch(`${apiBase}?uid=${uid}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success" || data.status === "bound") {
+                    document.getElementById('userName').innerText = data.name + "，歡迎回來 🦋";
+                    loadProducts(); // 綁定成功才載入商品
+                } else {
+                    // 沒綁定過，跳轉到輸入名稱頁面
+                    window.location.href = "check.html";
+                }
+            });
+    }
+
+    // 2. 從雲端抓取商品
+    function loadProducts() {
+        fetch(`${apiBase}?action=getProducts`)
+            .then(res => res.json())
+            .then(products => {
+                allProducts = products;
+                document.getElementById('loading').style.display = 'none';
                 document.getElementById('shopArea').style.display = 'block';
-                loadProducts(); // <--- 關鍵：直接載入商品
-            } else {
-                // 未綁定：導向綁定頁面 (check.html)
-                window.location.href = "check.html";
-            }
-        });
-}
 
-// --- 4. 載入並渲染商品清單 ---
-function loadProducts() {
-    const api = "你的_GAS_網址?action=getProducts";
-    fetch(api)
-        .then(res => res.json())
-        .then(products => {
-            const grid = document.getElementById('productGrid');
-            grid.innerHTML = products.map(p => `
+                // 自動產生分類按鈕 (排除重複分類)
+                const categories = ['全部', ...new Set(products.map(p => p.category))];
+                const menu = document.getElementById('categoryMenu');
+                menu.innerHTML = categories.map(cat => `
+                    <button class="cat-btn" onclick="filterProducts('${cat}', this)">${cat}</button>
+                `).join('');
+                menu.children[0].classList.add('active'); // 預設選中全部
+
+                renderProducts(products);
+            });
+    }
+
+    // 3. 渲染商品清單
+    function renderProducts(products) {
+        const grid = document.getElementById('productGrid');
+        grid.innerHTML = products.map(p => {
+            const isOut = p.status === "下架中" || p.stock <= 0;
+            return `
                 <div class="product-card">
-                    <img src="${p.img}" style="width:100%; border-radius:10px;">
-                    <h4>${p.name}</h4>
-                    <p class="price">NT$ ${p.price}</p>
-                    <span class="tag">${p.tag || ''}</span>
-                    <button onclick="addToCart('${p.name}', ${p.price})" 
-                        ${p.status === '下架中' ? 'disabled' : ''}>
-                        ${p.status === '下架中' ? '暫不供應' : '加入購物車'}
+                    ${p.tag ? `<div class="tag">${p.tag}</div>` : ''}
+                    <img src="${p.img}" class="product-img">
+                    <div class="product-name">${p.name}</div>
+                    <span class="price">NT$ ${p.price}</span>
+                    <span class="stock">存貨:${p.stock}</span>
+                    <button class="buy-btn ${isOut ? 'btn-disabled' : 'btn-enabled'}" 
+                            onclick="addToCart('${p.name}', ${p.price})" 
+                            ${isOut ? 'disabled' : ''}>
+                        ${isOut ? '暫無存貨' : '加入購物車'}
                     </button>
                 </div>
-            `).join('');
-        });
-}
+            `;
+        }).join('');
+    }
+
+    // 4. 分類篩選邏輯
+    function filterProducts(cat, btn) {
+        // 切換按鈕樣式
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (cat === '全部') {
+            renderProducts(allProducts);
+        } else {
+            const filtered = allProducts.filter(p => p.category === cat);
+            renderProducts(filtered);
+        }
+    }
+
+    // 5. 加入購物車
+    function addToCart(name, price) {
+        cart.push({ name, price, qty: 1 });
+        document.getElementById('cartFab').style.display = 'block';
+        document.getElementById('cartCount').innerText = cart.length;
+        // 簡單震動提示 (支援的手機)
+        if (window.navigator.vibrate) window.navigator.vibrate(50);
+    }
+
+    init();
+</script>
+
+</body>
+</html>
