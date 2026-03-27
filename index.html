@@ -1,46 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2U日本代購 🦋</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; background: #fef9f3; padding: 40px 20px; }
-        .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .btn { display: block; background: #06C755; color: white; padding: 15px; border-radius: 30px; text-decoration: none; margin-top: 20px; border: none; width: 100%; font-size: 16px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>2U日本代購 🦋</h1>
-        <div id="beforeLogin">
-            <p>請先登入 LINE 以查詢您的個人訂單</p>
-            <button class="btn" onclick="liff.login()">🍀 LINE 快速登入</button>
-        </div>
-        <div id="afterLogin" style="display:none;">
-            <img id="userImg" style="width:80px; border-radius:50%;">
-            <h3 id="userName"></h3>
-            <a href="check.html" class="btn">查看訂單進度 ></a>
-        </div>
-    </div>
+// --- 1. 原有基礎：初始化 LIFF ---
+async function initLiff() {
+    await liff.init({ liffId: "2009620784-76eBZ9C0" });
+    if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        const uid = profile.userId;
+        sessionStorage.setItem('lineUid', uid); // 存起來備用
 
-    <script>
-        async function init() {
-            await liff.init({ liffId: "2009620784-76eBZ9C0" });
-            if (liff.isLoggedIn()) {
-                const profile = await liff.getProfile();
-                // 關鍵：拿到 userId 並存起來
-                sessionStorage.setItem('lineUid', profile.userId);
-        
-                document.getElementById('beforeLogin').style.display = 'none';
-                document.getElementById('afterLogin').style.display = 'block';
-                document.getElementById('userName').innerText = profile.displayName + "，您好";
-                document.getElementById('userImg').src = profile.pictureUrl;
+        // --- 2. 核心邏輯：檢查綁定狀態 ---
+        checkBinding(uid);
+    } else {
+        // 未登入顯示登入按鈕
+        document.getElementById('loginDiv').style.display = 'block';
+    }
+}
+
+// --- 3. 檢查是否綁定社群名稱 ---
+function checkBinding(uid) {
+    const api = "你的_GAS_網址";
+    fetch(`${api}?uid=${uid}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                // 已綁定：隱藏登入區，顯示歡迎詞與商品清單
+                document.getElementById('userName').innerText = data.name + "，歡迎回來 🦋";
+                document.getElementById('shopArea').style.display = 'block';
+                loadProducts(); // <--- 關鍵：直接載入商品
+            } else {
+                // 未綁定：導向綁定頁面 (check.html)
+                window.location.href = "check.html";
             }
-            }
-        
-        init();
-    </script>
-</body>
-</html>
+        });
+}
+
+// --- 4. 載入並渲染商品清單 ---
+function loadProducts() {
+    const api = "你的_GAS_網址?action=getProducts";
+    fetch(api)
+        .then(res => res.json())
+        .then(products => {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = products.map(p => `
+                <div class="product-card">
+                    <img src="${p.img}" style="width:100%; border-radius:10px;">
+                    <h4>${p.name}</h4>
+                    <p class="price">NT$ ${p.price}</p>
+                    <span class="tag">${p.tag || ''}</span>
+                    <button onclick="addToCart('${p.name}', ${p.price})" 
+                        ${p.status === '下架中' ? 'disabled' : ''}>
+                        ${p.status === '下架中' ? '暫不供應' : '加入購物車'}
+                    </button>
+                </div>
+            `).join('');
+        });
+}
